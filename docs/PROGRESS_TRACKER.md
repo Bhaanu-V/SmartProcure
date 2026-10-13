@@ -99,7 +99,7 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 #### Phase 9: Frontend Architecture & Foundation (Commits 47–51)
 - [x] **Commit 47**: `feat(frontend): initialize React Vite TypeScript frontend structure`
 - [x] **Commit 48**: `feat(frontend): implement design tokens, theme system, and layout components`
-- [ ] **Commit 49**: `feat(frontend): implement API client, auth context, and token storage`
+- [x] **Commit 49**: `feat(frontend): implement API client, auth context, and token storage`
 - [ ] **Commit 50**: `feat(frontend): implement authentication pages and protected routes`
 - [ ] **Commit 51**: `feat(frontend): implement executive dashboard with procurement metrics`
 
