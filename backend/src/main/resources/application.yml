@@ -8,7 +8,7 @@ spring:
 
   # Database Datasource (PostgreSQL)
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartprocure_db}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartprocure_db?currentSchema=smartprocure}
     username: ${DB_USERNAME:smartprocure_app}
     password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
@@ -29,7 +29,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: smartprocure
         jdbc:
           time_zone: UTC
     open-in-view: false
@@ -37,8 +37,10 @@ spring:
   # Flyway Schema Migrations
   flyway:
     enabled: true
-    baseline-on-migrate: true
-    baseline-version: 0
+    schemas: smartprocure
+    default-schema: smartprocure
+    create-schemas: false
+    baseline-on-migrate: false
     locations: classpath:db/migration
     validate-on-migrate: true
 

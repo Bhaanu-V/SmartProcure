@@ -2,12 +2,19 @@ spring:
   application:
     name: smartprocure-backend-test
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartprocure_db}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartprocure_db?currentSchema=smartprocure}
     username: ${DB_USERNAME:smartprocure_app}
     password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: smartprocure
   flyway:
-    enabled: false
+    enabled: true
+    schemas: smartprocure
+    default-schema: smartprocure
+    create-schemas: false
+    baseline-on-migrate: false
