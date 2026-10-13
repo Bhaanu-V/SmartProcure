@@ -92,7 +92,7 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 
 #### Phase 8: AI Integration (Google Gemini) (Commits 43–46)
 - [x] **Commit 43**: `feat(ai): configure Gemini client configuration, DTOs, and error handling`
-- [ ] **Commit 44**: `feat(ai): implement procurement risk assessment and anomaly detection service`
+- [x] **Commit 44**: `feat(ai): implement procurement risk assessment and anomaly detection service`
 - [ ] **Commit 45**: `feat(ai): implement AI analysis controller endpoint and human-in-the-loop safeguards`
 - [ ] **Commit 46**: `test(ai): add unit tests for Gemini client, prompt formatting, and fallback handling`
 
