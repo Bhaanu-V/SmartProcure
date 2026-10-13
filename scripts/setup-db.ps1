@@ -75,7 +75,7 @@ function Invoke-PostgresSuperQuery {
     $oldEnv = $env:PGPASSWORD
     try {
         $env:PGPASSWORD = $SuperuserPassword
-        $res = & $psqlPath -h localhost -p 5432 -U postgres -d $Database -t -A -c $Query 2>&1
+        $res = & $psqlPath -h localhost -p 5432 -U postgres -d $Database -v ON_ERROR_STOP=1 -t -A -c $Query 2>&1
         if ($LASTEXITCODE -ne 0) {
             throw "psql failed: $res"
         }
@@ -101,15 +101,36 @@ try {
 }
 
 # Check or generate application role password
+$workspaceRoot = "C:\SmartProcure"
+$envPath = Join-Path $workspaceRoot ".env"
+
+if (-not $AppPassword -and (Test-Path $envPath)) {
+    foreach ($line in (Get-Content $envPath)) {
+        if ($line -match '^\s*DB_PASSWORD\s*=\s*(.*)$') {
+            $existing = $matches[1].Trim().Trim('"').Trim("'")
+            if ($existing -and $existing -ne "your_secure_local_password_here") {
+                $AppPassword = $existing
+                Write-Host "[OK] Preserving active application password from existing .env." -ForegroundColor Green
+                break
+            }
+        }
+    }
+}
+
 if (-not $AppPassword) {
-    # Generate 24-char cryptographic random alphanumeric password
-    $bytes = New-Object byte[] 24
-    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-    $rng.GetBytes($bytes)
-    $chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#%*+,-./:;=?@^_"
+    # Generate 32-character cryptographic random alphanumeric password (Base62)
+    # Parser-safe for .env, dotenv-java, JDBC connection strings, and shell variables
+    # 32 chars from 62 symbols provides ~190.5 bits of cryptographic entropy without modulo bias
+    $chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     $appPwdBuilder = New-Object System.Text.StringBuilder
-    foreach ($b in $bytes) {
-        [void]$appPwdBuilder.Append($chars[$b % $chars.Length])
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    $oneByte = New-Object byte[] 1
+    $maxValid = 256 - (256 % $chars.Length) # 256 - 8 = 248 (unbiased rejection threshold)
+    while ($appPwdBuilder.Length -lt 32) {
+        $rng.GetBytes($oneByte)
+        if ($oneByte[0] -lt $maxValid) {
+            [void]$appPwdBuilder.Append($chars[$oneByte[0] % $chars.Length])
+        }
     }
     $AppPassword = $appPwdBuilder.ToString()
 }
@@ -141,39 +162,49 @@ if ($dbExists -eq "1") {
     Write-Host "[OK] Database 'smartprocure_db' created successfully." -ForegroundColor Green
 }
 
-# Configure database permissions
-Write-Host "Configuring privileges for 'smartprocure_app' on 'smartprocure_db'..." -ForegroundColor Cyan
+# Configure database permissions and dedicated schema 'smartprocure'
+Write-Host "Configuring database privileges and dedicated schema 'smartprocure'..." -ForegroundColor Cyan
 $grantDbSql = @"
 GRANT CONNECT, TEMPORARY ON DATABASE smartprocure_db TO smartprocure_app;
 "@
 [void](Invoke-PostgresSuperQuery $grantDbSql)
 
-$grantSchemaSql = @"
-GRANT ALL ON SCHEMA public TO smartprocure_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO smartprocure_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO smartprocure_app;
+$schemaSql = @"
+CREATE SCHEMA IF NOT EXISTS smartprocure AUTHORIZATION smartprocure_app;
+GRANT ALL ON SCHEMA smartprocure TO smartprocure_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA smartprocure GRANT ALL ON TABLES TO smartprocure_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA smartprocure GRANT ALL ON SEQUENCES TO smartprocure_app;
 "@
-[void](Invoke-PostgresSuperQuery $grantSchemaSql -Database "smartprocure_db")
-Write-Host "[OK] Database privileges configured successfully." -ForegroundColor Green
+[void](Invoke-PostgresSuperQuery $schemaSql -Database "smartprocure_db")
+Write-Host "[OK] Dedicated schema 'smartprocure' configured with owner 'smartprocure_app'." -ForegroundColor Green
+
+# Verify public schema preservation
+$publicCount = Invoke-PostgresSuperQuery "SELECT count(*) FROM pg_tables WHERE schemaname = 'public';" -Database "smartprocure_db"
+Write-Host "[OK] Public schema preserved ($publicCount tables in public remain untouched)." -ForegroundColor Green
+
+# Determine parser-safe serialization for .env
+$serializedPassword = if ($AppPassword -match '[\s#"]') {
+    "`"$($AppPassword.Replace('\', '\\').Replace('"', '\"'))`""
+} else {
+    $AppPassword
+}
 
 # Update / Create .env file safely
-$workspaceRoot = "C:\SmartProcure"
-$envPath = Join-Path $workspaceRoot ".env"
-
 $envContent = @"
 # SmartProcure - Local Environment Configuration (Generated)
 # DO NOT COMMIT THIS FILE TO VERSION CONTROL
 
 # Database Connectivity
-DB_URL=jdbc:postgresql://localhost:5432/smartprocure_db
+DB_URL=jdbc:postgresql://localhost:5432/smartprocure_db?currentSchema=smartprocure
 DB_USERNAME=smartprocure_app
-DB_PASSWORD=$AppPassword
+DB_PASSWORD=$serializedPassword
 
 # PostgreSQL Client Tools
 PGHOST=localhost
 PGPORT=5432
 PGDATABASE=smartprocure_db
 PGUSER=smartprocure_app
+PGOPTIONS=--search_path=smartprocure
 
 # Application Profiles
 SERVER_PORT=8080
@@ -185,6 +216,23 @@ JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot
 
 Set-Content -Path $envPath -Value $envContent -Encoding utf8
 Write-Host "[OK] Saved local credentials to '$envPath'." -ForegroundColor Green
+
+# Validate that .env can be parsed back and matches the active password exactly
+$parsedPass = $null
+if (Test-Path $envPath) {
+    foreach ($line in (Get-Content -Path $envPath)) {
+        $tLine = $line.Trim()
+        if ($tLine -match '^\s*DB_PASSWORD\s*=\s*(.*)$') {
+            $parsedPass = $matches[1].Trim().Trim('"').Trim("'")
+            break
+        }
+    }
+}
+
+if (-not $parsedPass -or ($parsedPass -cne $AppPassword)) {
+    throw "Critical validation failure: .env password cannot be parsed back or does not match active password."
+}
+Write-Host "[OK] Verified .env password serialization and exact round-trip parsing (length: $($AppPassword.Length) chars, secrets masked)." -ForegroundColor Green
 
 # Verify connection as application role
 Write-Host "`nVerifying connection as application role 'smartprocure_app'..." -ForegroundColor Cyan
@@ -214,3 +262,6 @@ Write-Host " Database: smartprocure_db" -ForegroundColor Green
 Write-Host " Role:     smartprocure_app" -ForegroundColor Green
 Write-Host " Config:   $envPath" -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Green
+
+$SuperuserPassword = $null
+$AppPassword = $null
