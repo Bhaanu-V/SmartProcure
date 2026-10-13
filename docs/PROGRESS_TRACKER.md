@@ -43,8 +43,8 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 - [x] **Commit 6** `67ff283`: `docs: initialize master project progress tracker`
 - [x] **Commit 7** `5208b08`: `feat(db): add Flyway V2 migration for departments, suppliers, and budgets`
 - [x] **Commit 8** `55f81d8`: `feat(db): add Flyway V3 migration for purchase requests, audit log, and notifications`
-- [x] **Commit 9**: `test(db): add schema integration tests for V2 and V3 migrations`
-- [ ] **Commit 10**: `feat(domain): implement core JPA entities for users, roles, and departments`
+- [x] **Commit 9** `8dd24ad`: `test(db): add schema integration tests for V2 and V3 migrations`
+- [x] **Commit 10**: `feat(domain): implement core JPA entities for users, roles, and departments`
 
 #### Phase 2: Domain Entities & Repositories (Commits 11–15)
 - [ ] **Commit 11**: `feat(domain): implement supplier, catalog item, and budget entities`
