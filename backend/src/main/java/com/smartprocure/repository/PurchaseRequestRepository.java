@@ -30,6 +30,8 @@ public interface PurchaseRequestRepository extends JpaRepository<PurchaseRequest
 
     Page<PurchaseRequest> findByDepartmentIdAndStatusIn(Long departmentId, Collection<RequestStatus> statuses, Pageable pageable);
 
+    Page<PurchaseRequest> findByDepartmentIdAndStatus(Long departmentId, RequestStatus status, Pageable pageable);
+
     long countByStatus(RequestStatus status);
 
     @Query("SELECT r FROM PurchaseRequest r WHERE " +
