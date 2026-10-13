@@ -74,7 +74,7 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 - [x] **Commit 29**: `feat(pr): implement purchase request submission and workflow state transition`
 - [x] **Commit 30**: `feat(pr): implement PurchaseRequestController with role-based access`
 - [x] **Commit 31**: `feat(audit): implement AOP audit logging for procurement lifecycle events`
-- [ ] **Commit 32**: `test(pr): add unit and integration tests for purchase request lifecycle`
+- [x] **Commit 32**: `test(pr): add unit and integration tests for purchase request lifecycle`
 
 #### Phase 6: Multi-Tier Approval Engine (Commits 33–37)
 - [ ] **Commit 33**: `feat(approval): implement approval workflow state machine and validation service`

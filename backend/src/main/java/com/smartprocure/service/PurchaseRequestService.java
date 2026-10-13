@@ -67,8 +67,7 @@ public class PurchaseRequestService {
     @Auditable(action = "PR_CREATED", entityName = "PurchaseRequest")
     @Transactional
     public PurchaseRequestResponse createDraft(CreatePurchaseRequest request, String requesterEmail) {
-        User requester = userRepository.findByEmail(requesterEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", requesterEmail));
+        User requester = findUserByPrincipal(requesterEmail);
 
         Department department = departmentRepository.findById(request.getDepartmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Department", "id", request.getDepartmentId()));
@@ -106,8 +105,7 @@ public class PurchaseRequestService {
         PurchaseRequest pr = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PurchaseRequest", "id", id));
 
-        User currentUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+        User currentUser = findUserByPrincipal(userEmail);
 
         checkCanModify(pr, currentUser);
 
@@ -150,8 +148,7 @@ public class PurchaseRequestService {
         PurchaseRequest pr = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PurchaseRequest", "id", id));
 
-        User currentUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+        User currentUser = findUserByPrincipal(userEmail);
 
         checkCanAccess(pr, currentUser);
         return PurchaseRequestResponse.fromEntity(pr);
@@ -165,8 +162,7 @@ public class PurchaseRequestService {
         PurchaseRequest pr = requestRepository.findByRequestNumber(requestNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("PurchaseRequest", "requestNumber", requestNumber));
 
-        User currentUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+        User currentUser = findUserByPrincipal(userEmail);
 
         checkCanAccess(pr, currentUser);
         return PurchaseRequestResponse.fromEntity(pr);
@@ -180,8 +176,7 @@ public class PurchaseRequestService {
         PurchaseRequest pr = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PurchaseRequest", "id", id));
 
-        User currentUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+        User currentUser = findUserByPrincipal(userEmail);
 
         checkCanModify(pr, currentUser);
         requestRepository.delete(pr);
@@ -193,8 +188,7 @@ public class PurchaseRequestService {
      */
     @Transactional(readOnly = true)
     public Page<PurchaseRequestResponse> getMyRequests(String userEmail, Pageable pageable) {
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+        User user = findUserByPrincipal(userEmail);
 
         return requestRepository.findByRequesterId(user.getId(), pageable)
                 .map(PurchaseRequestResponse::fromEntity);
@@ -210,8 +204,7 @@ public class PurchaseRequestService {
         PurchaseRequest pr = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PurchaseRequest", "id", id));
 
-        User currentUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+        User currentUser = findUserByPrincipal(userEmail);
 
         if (!pr.getRequester().getId().equals(currentUser.getId()) && currentUser.getRole() != Role.ADMIN) {
             throw new AccessDeniedException("Only the requester may submit this purchase request");
@@ -273,8 +266,7 @@ public class PurchaseRequestService {
         PurchaseRequest pr = requestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PurchaseRequest", "id", id));
 
-        User currentUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+        User currentUser = findUserByPrincipal(userEmail);
 
         boolean isOwner = pr.getRequester().getId().equals(currentUser.getId());
         boolean isAdmin = currentUser.getRole() == Role.ADMIN;
@@ -385,5 +377,11 @@ public class PurchaseRequestService {
         if (!isOwner && !isManager && !hasPrivilegedRole) {
             throw new AccessDeniedException("You do not have permission to view this purchase request");
         }
+    }
+
+    private User findUserByPrincipal(String principal) {
+        return userRepository.findByEmail(principal)
+                .or(() -> userRepository.findByUsername(principal))
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username or email", principal));
     }
 }
