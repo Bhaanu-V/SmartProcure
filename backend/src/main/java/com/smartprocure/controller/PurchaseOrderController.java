@@ -4,13 +4,16 @@ import com.smartprocure.dto.po.GeneratePurchaseOrderRequest;
 import com.smartprocure.dto.po.PurchaseOrderResponse;
 import com.smartprocure.dto.po.UpdatePOStatusRequest;
 import com.smartprocure.entity.POStatus;
+import com.smartprocure.service.PdfGenerationService;
 import com.smartprocure.service.PurchaseOrderService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -18,16 +21,19 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * REST controller for issuing Purchase Orders, managing lifecycle statuses,
- * and querying order records with role-based access control.
+ * exporting certified PDF documents, and querying order records with role-based access control.
  */
 @RestController
 @RequestMapping("/api/orders")
 public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
+    private final PdfGenerationService pdfGenerationService;
 
-    public PurchaseOrderController(PurchaseOrderService purchaseOrderService) {
+    public PurchaseOrderController(PurchaseOrderService purchaseOrderService,
+                                   PdfGenerationService pdfGenerationService) {
         this.purchaseOrderService = purchaseOrderService;
+        this.pdfGenerationService = pdfGenerationService;
     }
 
     /**
@@ -95,5 +101,28 @@ public class PurchaseOrderController {
         PurchaseOrderResponse response = purchaseOrderService.updateOrderStatus(
                 id, request, authentication.getName());
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Generates and downloads a digitally formatted PDF document for an authorized Purchase Order.
+     */
+    @GetMapping("/{id}/pdf")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> downloadOrderPdf(
+            @PathVariable Long id,
+            Authentication authentication) {
+        com.smartprocure.entity.PurchaseOrder po = purchaseOrderService.getEntityForExport(
+                id, authentication.getName());
+        byte[] pdfBytes = pdfGenerationService.generatePurchaseOrderPdf(po);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("inline", po.getPoNumber() + ".pdf");
+        headers.setCacheControl("no-cache, no-store, must-revalidate");
+        headers.setContentLength(pdfBytes.length);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfBytes);
     }
 }

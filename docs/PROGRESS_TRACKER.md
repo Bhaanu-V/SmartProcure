@@ -87,7 +87,7 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 - [x] **Commit 38**: `feat(po): implement PurchaseOrderService for PO creation from approved requests`
 - [x] **Commit 39**: `feat(po): implement PurchaseOrderController and order lifecycle management`
 - [x] **Commit 40**: `feat(pdf): implement OpenPDF document generation service for purchase orders`
-- [ ] **Commit 41**: `feat(pdf): implement secure PDF download endpoint with access control`
+- [x] **Commit 41**: `feat(pdf): implement secure PDF download endpoint with access control`
 - [ ] **Commit 42**: `test(po): add tests for PO generation, lifecycle, and PDF export`
 
 #### Phase 8: AI Integration (Google Gemini) (Commits 43–46)
