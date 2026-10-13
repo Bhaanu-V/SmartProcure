@@ -38,17 +38,26 @@ public class PurchaseRequestService {
     private final DepartmentRepository departmentRepository;
     private final CatalogItemRepository catalogItemRepository;
     private final PurchaseRequestCalculationValidator calculationValidator;
+    private final BudgetService budgetService;
+    private final com.smartprocure.repository.ApprovalHistoryRepository approvalHistoryRepository;
+    private final com.smartprocure.repository.NotificationRepository notificationRepository;
 
     public PurchaseRequestService(PurchaseRequestRepository requestRepository,
                                   UserRepository userRepository,
                                   DepartmentRepository departmentRepository,
                                   CatalogItemRepository catalogItemRepository,
-                                  PurchaseRequestCalculationValidator calculationValidator) {
+                                  PurchaseRequestCalculationValidator calculationValidator,
+                                  BudgetService budgetService,
+                                  com.smartprocure.repository.ApprovalHistoryRepository approvalHistoryRepository,
+                                  com.smartprocure.repository.NotificationRepository notificationRepository) {
         this.requestRepository = requestRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
         this.catalogItemRepository = catalogItemRepository;
         this.calculationValidator = calculationValidator;
+        this.budgetService = budgetService;
+        this.approvalHistoryRepository = approvalHistoryRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     /**
@@ -186,6 +195,126 @@ public class PurchaseRequestService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
 
         return requestRepository.findByRequesterId(user.getId(), pageable)
+                .map(PurchaseRequestResponse::fromEntity);
+    }
+
+    /**
+     * Submits a purchase request from DRAFT or REJECTED status into the approval workflow.
+     * Transitions status to PENDING_MANAGER_APPROVAL and alerts the department manager.
+     */
+    @Transactional
+    public PurchaseRequestResponse submitPurchaseRequest(Long id, String userEmail) {
+        PurchaseRequest pr = requestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("PurchaseRequest", "id", id));
+
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+
+        if (!pr.getRequester().getId().equals(currentUser.getId()) && currentUser.getRole() != Role.ADMIN) {
+            throw new AccessDeniedException("Only the requester may submit this purchase request");
+        }
+
+        if (pr.getStatus() != RequestStatus.DRAFT && pr.getStatus() != RequestStatus.REJECTED) {
+            throw new BadRequestException("Only DRAFT or REJECTED requests can be submitted. Current status: " + pr.getStatus());
+        }
+
+        if (pr.getLineItems() == null || pr.getLineItems().isEmpty()) {
+            throw new BadRequestException("Cannot submit a purchase request without line items");
+        }
+
+        if (pr.getTotalAmount() == null || pr.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("Purchase request total amount must be strictly greater than zero");
+        }
+
+        boolean wasRejected = pr.getStatus() == RequestStatus.REJECTED;
+        pr.setStatus(RequestStatus.PENDING_MANAGER_APPROVAL);
+        pr.setRejectionReason(null);
+
+        PurchaseRequest saved = requestRepository.save(pr);
+
+        ApprovalHistory history = new ApprovalHistory(
+                saved,
+                currentUser,
+                wasRejected ? ApprovalAction.RESUBMITTED : ApprovalAction.APPROVED,
+                ApprovalStage.MANAGER,
+                wasRejected ? "Resubmitted with modifications" : "Initial requisition submission"
+        );
+        approvalHistoryRepository.save(history);
+
+        if (saved.getDepartment() != null && saved.getDepartment().getManager() != null) {
+            User manager = saved.getDepartment().getManager();
+            Notification notification = new Notification(
+                    manager,
+                    "Requisition Pending Approval: " + saved.getRequestNumber(),
+                    String.format("Requester %s submitted '%s' ($%s) for department %s.",
+                            currentUser.getFullName(), saved.getTitle(), saved.getTotalAmount(), saved.getDepartment().getName()),
+                    NotificationType.APPROVAL_REQUEST,
+                    "PURCHASE_REQUEST",
+                    saved.getId()
+            );
+            notificationRepository.save(notification);
+        }
+
+        log.info("Submitted PR '{}' by user '{}'. Status is now PENDING_MANAGER_APPROVAL",
+                saved.getRequestNumber(), userEmail);
+
+        return PurchaseRequestResponse.fromEntity(saved);
+    }
+
+    /**
+     * Cancels an active purchase request.
+     */
+    @Transactional
+    public PurchaseRequestResponse cancelPurchaseRequest(Long id, String reason, String userEmail) {
+        PurchaseRequest pr = requestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("PurchaseRequest", "id", id));
+
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+
+        boolean isOwner = pr.getRequester().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("Only the requester or an administrator can cancel this requisition");
+        }
+
+        if (pr.getStatus() == RequestStatus.APPROVED ||
+                pr.getStatus() == RequestStatus.PO_CREATED ||
+                pr.getStatus() == RequestStatus.CANCELLED) {
+            throw new BadRequestException("Cannot cancel request in status: " + pr.getStatus());
+        }
+
+        pr.setStatus(RequestStatus.CANCELLED);
+        PurchaseRequest saved = requestRepository.save(pr);
+
+        ApprovalHistory history = new ApprovalHistory(
+                saved,
+                currentUser,
+                ApprovalAction.CANCELLED,
+                ApprovalStage.MANAGER,
+                reason != null ? reason.trim() : "Cancelled by requester"
+        );
+        approvalHistoryRepository.save(history);
+
+        log.info("Cancelled PR '{}' by user '{}'. Reason: {}", saved.getRequestNumber(), userEmail, reason);
+        return PurchaseRequestResponse.fromEntity(saved);
+    }
+
+    /**
+     * Retrieves all purchase requests for a given department.
+     */
+    @Transactional(readOnly = true)
+    public Page<PurchaseRequestResponse> getDepartmentRequests(Long departmentId, Pageable pageable) {
+        return requestRepository.findByDepartmentId(departmentId, pageable)
+                .map(PurchaseRequestResponse::fromEntity);
+    }
+
+    /**
+     * Filters purchase requests by requester, department, and status.
+     */
+    @Transactional(readOnly = true)
+    public Page<PurchaseRequestResponse> filterRequests(Long requesterId, Long departmentId, RequestStatus status, Pageable pageable) {
+        return requestRepository.filterRequests(requesterId, departmentId, status, pageable)
                 .map(PurchaseRequestResponse::fromEntity);
     }
 
