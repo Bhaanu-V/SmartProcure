@@ -69,7 +69,7 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 - [x] **Commit 26**: `test(budget): add concurrency and boundary unit tests for budget reservation`
 
 #### Phase 5: Purchase Request Lifecycle & Workflow (Commits 27–32)
-- [ ] **Commit 27**: `feat(pr): implement purchase request DTOs and server-side calculation validator`
+- [x] **Commit 27**: `feat(pr): implement purchase request DTOs and server-side calculation validator`
 - [ ] **Commit 28**: `feat(pr): implement PurchaseRequestService for draft lifecycle`
 - [ ] **Commit 29**: `feat(pr): implement purchase request submission and workflow state transition`
 - [ ] **Commit 30**: `feat(pr): implement PurchaseRequestController with role-based access`
