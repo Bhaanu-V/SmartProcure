@@ -79,7 +79,7 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 #### Phase 6: Multi-Tier Approval Engine (Commits 33–37)
 - [x] **Commit 33**: `feat(approval): implement approval workflow state machine and validation service`
 - [x] **Commit 34**: `feat(approval): implement manager review and approval service`
-- [ ] **Commit 35**: `feat(approval): implement finance review and budget reservation approval`
+- [x] **Commit 35**: `feat(approval): implement finance review and budget reservation approval`
 - [ ] **Commit 36**: `feat(approval): implement ApprovalController endpoints and approval queue`
 - [ ] **Commit 37**: `test(approval): add comprehensive approval workflow tests`
 
