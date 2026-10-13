@@ -97,7 +97,7 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 - [x] **Commit 46**: `test(ai): add unit tests for Gemini client, prompt formatting, and fallback handling`
 
 #### Phase 9: Frontend Architecture & Foundation (Commits 47–51)
-- [ ] **Commit 47**: `feat(frontend): initialize React Vite TypeScript frontend structure`
+- [x] **Commit 47**: `feat(frontend): initialize React Vite TypeScript frontend structure`
 - [ ] **Commit 48**: `feat(frontend): implement design tokens, theme system, and layout components`
 - [ ] **Commit 49**: `feat(frontend): implement API client, auth context, and token storage`
 - [ ] **Commit 50**: `feat(frontend): implement authentication pages and protected routes`
