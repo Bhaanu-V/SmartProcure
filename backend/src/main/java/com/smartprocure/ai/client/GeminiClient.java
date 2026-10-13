@@ -37,11 +37,15 @@ public class GeminiClient {
                 .build();
     }
 
+    public boolean isAvailable() {
+        return properties.isConfigured();
+    }
+
     /**
      * Sends a prompt to Gemini and returns the textual response, or empty Optional if unavailable or errored.
      */
     public Optional<String> generateText(String prompt) {
-        if (!properties.isConfigured()) {
+        if (!isAvailable()) {
             log.info("Gemini API key is not configured; using deterministic fallback analysis.");
             return Optional.empty();
         }
