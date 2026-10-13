@@ -50,7 +50,7 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 - [x] **Commit 11** `fbf35ac`: `feat(domain): implement supplier, catalog item, and budget entities`
 - [x] **Commit 12** `fccd7ad`: `feat(domain): implement purchase request and line item entities`
 - [x] **Commit 13**: `feat(domain): implement purchase order and line item entities`
-- [ ] **Commit 14**: `feat(domain): implement approval history, audit log, and notification entities`
+- [x] **Commit 14**: `feat(domain): implement approval history, audit log, and notification entities`
 - [ ] **Commit 15**: `feat(repo): implement Spring Data JPA repositories with custom queries`
 
 #### Phase 3: Security & Authentication (Commits 16–21)
