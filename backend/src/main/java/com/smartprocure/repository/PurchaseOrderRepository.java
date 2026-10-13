@@ -18,6 +18,15 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
 
     boolean existsByPoNumber(String poNumber);
 
+    @Query("SELECT po FROM PurchaseOrder po " +
+           "LEFT JOIN FETCH po.lineItems " +
+           "LEFT JOIN FETCH po.supplier " +
+           "LEFT JOIN FETCH po.department " +
+           "LEFT JOIN FETCH po.requester " +
+           "LEFT JOIN FETCH po.purchaseRequest " +
+           "WHERE po.id = :id")
+    Optional<PurchaseOrder> findByIdWithDetails(@Param("id") Long id);
+
     Optional<PurchaseOrder> findByPurchaseRequestId(Long purchaseRequestId);
 
     Page<PurchaseOrder> findBySupplierId(Long supplierId, Pageable pageable);

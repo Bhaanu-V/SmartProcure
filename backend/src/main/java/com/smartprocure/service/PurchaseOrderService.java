@@ -218,8 +218,9 @@ public class PurchaseOrderService {
         return PurchaseOrderResponse.fromEntity(updated);
     }
 
+    @Transactional(readOnly = true)
     public PurchaseOrder getEntityForExport(Long id, String userPrincipal) {
-        PurchaseOrder po = orderRepository.findById(id)
+        PurchaseOrder po = orderRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PurchaseOrder", "id", id));
 
         User currentUser = findUserByPrincipal(userPrincipal);

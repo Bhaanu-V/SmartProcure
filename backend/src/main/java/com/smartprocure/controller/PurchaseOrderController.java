@@ -117,7 +117,7 @@ public class PurchaseOrderController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("inline", po.getPoNumber() + ".pdf");
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + po.getPoNumber() + ".pdf\"");
         headers.setCacheControl("no-cache, no-store, must-revalidate");
         headers.setContentLength(pdfBytes.length);
 
