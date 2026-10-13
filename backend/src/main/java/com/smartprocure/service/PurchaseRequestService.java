@@ -1,5 +1,6 @@
 package com.smartprocure.service;
 
+import com.smartprocure.audit.Auditable;
 import com.smartprocure.dto.pr.*;
 import com.smartprocure.entity.*;
 import com.smartprocure.exception.BadRequestException;
@@ -63,6 +64,7 @@ public class PurchaseRequestService {
     /**
      * Creates a new purchase requisition in DRAFT status with server-calculated line totals.
      */
+    @Auditable(action = "PR_CREATED", entityName = "PurchaseRequest")
     @Transactional
     public PurchaseRequestResponse createDraft(CreatePurchaseRequest request, String requesterEmail) {
         User requester = userRepository.findByEmail(requesterEmail)
@@ -202,6 +204,7 @@ public class PurchaseRequestService {
      * Submits a purchase request from DRAFT or REJECTED status into the approval workflow.
      * Transitions status to PENDING_MANAGER_APPROVAL and alerts the department manager.
      */
+    @Auditable(action = "PR_SUBMITTED", entityName = "PurchaseRequest")
     @Transactional
     public PurchaseRequestResponse submitPurchaseRequest(Long id, String userEmail) {
         PurchaseRequest pr = requestRepository.findById(id)
@@ -264,6 +267,7 @@ public class PurchaseRequestService {
     /**
      * Cancels an active purchase request.
      */
+    @Auditable(action = "PR_CANCELLED", entityName = "PurchaseRequest")
     @Transactional
     public PurchaseRequestResponse cancelPurchaseRequest(Long id, String reason, String userEmail) {
         PurchaseRequest pr = requestRepository.findById(id)
