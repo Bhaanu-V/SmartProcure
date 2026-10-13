@@ -57,7 +57,7 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 - [x] **Commit 16**: `feat(security): configure JWT dependencies and token utility`
 - [x] **Commit 17**: `feat(security): implement UserDetailsService and CustomUserDetails`
 - [x] **Commit 18**: `feat(security): configure Spring Security filter chain and authentication entry point`
-- [ ] **Commit 19**: `feat(auth): implement authentication DTOs and AuthService`
+- [x] **Commit 19**: `feat(auth): implement authentication DTOs and AuthService`
 - [ ] **Commit 20**: `feat(auth): implement AuthController endpoints and validation`
 - [ ] **Commit 21**: `test(auth): add unit and integration tests for authentication and JWT`
 
