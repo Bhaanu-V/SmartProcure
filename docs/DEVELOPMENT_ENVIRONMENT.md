@@ -81,8 +81,9 @@ SmartProcure is strictly architected for **PostgreSQL 18** (MySQL is prohibited)
 - **Server**: PostgreSQL 18 Windows Service (`postgresql-x64-18`) on `localhost:5432`.
 - **Database Name**: `smartprocure_db`
 - **Application Role**: `smartprocure_app` (dedicated least-privilege role, `NOSUPERUSER`, `NOCREATEDB`, `NOCREATEROLE`).
-- **Flyway Migrations**: Applied automatically on startup via `db/migration/V1__init_schema.sql`.
-- **Hibernate DDL**: `validate` mode in production to protect schema integrity.
+- **Target Schema**: `smartprocure` (dedicated isolated schema; legacy `public` schema tables remain untouched).
+- **Flyway Migrations**: Applied automatically on startup via `db/migration/V1__init_schema.sql` into schema `smartprocure`.
+- **Hibernate DDL**: `validate` mode in production to protect schema integrity (`default_schema: smartprocure`).
 
 ### Provisioning the Database:
 To create the database and role securely without exposing passwords in terminal history:
@@ -116,7 +117,7 @@ To load `.env` into your active PowerShell session:
 The backend uses a multi-layered approach:
 1. **Dynamic Dotenv Loader**: In `SmartProcureApplication.java`, `io.github.cdimascio:dotenv-java` detects `.env` in the root workspace and maps variables to System properties if not already set.
 2. **Spring Datasource Resolution**: `application.yml` maps:
-   - `spring.datasource.url: ${DB_URL:jdbc:postgresql://localhost:5432/smartprocure_db}`
+   - `spring.datasource.url: ${DB_URL:jdbc:postgresql://localhost:5432/smartprocure_db?currentSchema=smartprocure}`
    - `spring.datasource.username: ${DB_USERNAME:smartprocure_app}`
    - `spring.datasource.password: ${DB_PASSWORD}`
 
