@@ -65,7 +65,7 @@ SmartProcure is an enterprise AI-powered Purchase Order Management and Approval 
 - [x] **Commit 22**: `feat(budget): implement budget calculation and reservation service`
 - [x] **Commit 23**: `feat(supplier): implement supplier management service and controller`
 - [x] **Commit 24**: `feat(catalog): implement product catalog service and controller`
-- [ ] **Commit 25**: `feat(department): implement department and budget REST controllers`
+- [x] **Commit 25**: `feat(department): implement department and budget REST controllers`
 - [ ] **Commit 26**: `test(budget): add concurrency and boundary unit tests for budget reservation`
 
 #### Phase 5: Purchase Request Lifecycle & Workflow (Commits 27–32)
